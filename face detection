@@ -1,0 +1,97 @@
+import cv2
+import mediapipe as mp
+
+mp_hands = mp.solutions.hands
+mp_drawing = mp.solutions.drawing_utils
+
+# Initialize MediaPipe Hands model
+hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.7)
+
+# Start video capture
+cap = cv2.VideoCapture(0)
+
+def thumbs_up(landmarks):
+    return (landmarks.landmark[4].y < landmarks.landmark[3].y and
+            all(landmarks.landmark[f].y > landmarks.landmark[f - 2].y for f in [8, 12, 16, 20]))
+
+def thumbs_down(landmarks):
+    return (landmarks.landmark[4].y > landmarks.landmark[3].y and
+            all(landmarks.landmark[f].y > landmarks.landmark[f - 2].y for f in [8, 12, 16, 20]))
+
+def victory(landmarks):
+    return (landmarks.landmark[8].y < landmarks.landmark[6].y and 
+            landmarks.landmark[12].y < landmarks.landmark[10].y and 
+            landmarks.landmark[16].y > landmarks.landmark[14].y and 
+            landmarks.landmark[20].y > landmarks.landmark[18].y)
+
+def detect_0(landmarks):
+    return all(landmarks.landmark[f].y > landmarks.landmark[f - 2].y for f in [4, 8, 12, 16, 20])
+
+def detect_1(landmarks):
+    return (landmarks.landmark[8].y < landmarks.landmark[6].y and
+            all(landmarks.landmark[f].y > landmarks.landmark[f - 2].y for f in [4, 12, 16, 20]))
+
+def detect_2(landmarks):
+    return (landmarks.landmark[8].y < landmarks.landmark[6].y and
+            landmarks.landmark[12].y < landmarks.landmark[10].y and
+            all(landmarks.landmark[f].y > landmarks.landmark[f - 2].y for f in [4, 16, 20]))
+
+def detect_3(landmarks):
+    return (landmarks.landmark[8].y < landmarks.landmark[6].y and
+            landmarks.landmark[12].y < landmarks.landmark[10].y and
+            landmarks.landmark[16].y < landmarks.landmark[14].y and
+            landmarks.landmark[20].y > landmarks.landmark[18].y)
+
+def detect_4(landmarks):
+    return (landmarks.landmark[8].y < landmarks.landmark[6].y and
+            landmarks.landmark[12].y < landmarks.landmark[10].y and
+            landmarks.landmark[16].y < landmarks.landmark[14].y and
+            landmarks.landmark[20].y < landmarks.landmark[18].y)
+
+def detect_5(landmarks):
+    return all(landmarks.landmark[f].y < landmarks.landmark[f - 2].y for f in [4, 8, 12, 16, 20])
+
+while cap.isOpened():
+    success, frame = cap.read()
+    if not success:
+        break
+    
+    # Convert image color (BGR to RGB)
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    result = hands.process(frame_rgb)
+    
+    if result.multi_hand_landmarks:
+        for hand_landmarks in result.multi_hand_landmarks:
+            mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            
+            if thumbs_up(hand_landmarks):
+                text = "Thumbs Up!"
+            elif thumbs_down(hand_landmarks):
+                text = "Thumbs Down!"
+            elif victory(hand_landmarks):
+                text = "Victory!"
+            elif detect_0(hand_landmarks):
+                text = "Number: 0"
+            elif detect_1(hand_landmarks):
+                text = "Number: 1"
+            elif detect_2(hand_landmarks):
+                text = "Number: 2"
+            elif detect_3(hand_landmarks):
+                text = "Number: 3"
+            elif detect_4(hand_landmarks):
+                text = "Number: 4"
+            elif detect_5(hand_landmarks):
+                text = "Number: 5"
+            else:
+                text = ""
+            
+            if text:
+                cv2.putText(frame, text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 3)
+    
+    cv2.imshow("Hand Gesture Detection", frame)
+    
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
